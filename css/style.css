@@ -1,0 +1,101 @@
+/* ==========================================================================
+   SemiLearn - Modern Interactive Semiconductor Learning Platform Styles
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Pretendard:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  --font-mono: 'Fira Code', monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(156, 163, 175, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.6);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.8);
+}
+
+/* Canvas Container Grid Pattern Background */
+.canvas-grid-bg {
+  background-color: #0f172a;
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.08) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.canvas-grid-light {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.07) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+/* Smooth Tab Transitions */
+.tab-content-fade {
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Glow effects for interactive widgets */
+.glow-primary {
+  box-shadow: 0 0 15px -3px rgba(59, 130, 246, 0.4);
+}
+
+.glow-accent {
+  box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.4);
+}
+
+/* Pulse animation for active simulation indicator */
+@keyframes pulseDot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulseDot 2s infinite ease-in-out;
+}

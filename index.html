@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SemiLearn · 반도체 인터랙티브 학습 플랫폼</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- KaTeX (수식 렌더링) CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+  <!-- 커스텀 스타일 -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white transition-colors duration-200">
+
+  <!-- 전체 레이아웃 래퍼 -->
+  <div class="flex-1 flex overflow-hidden h-screen">
+
+    <!-- 1. 좌측 사이드바 (내비게이션) -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-72 md:w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out shadow-lg lg:shadow-none">
+      
+      <!-- 사이드바 상단 브랜딩 -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center text-white shadow-md font-bold text-base">
+            ⚡
+          </div>
+          <div>
+            <h1 class="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+              SemiLearn
+              <span class="text-[10px] px-1.5 py-0.2 bg-sky-500/10 text-sky-500 dark:text-sky-400 font-mono rounded">v1.0</span>
+            </h1>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">반도체 전자공학 인터랙티브 랩</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 진행률 & 검색바 -->
+      <div class="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2.5">
+        <!-- 학습 진행률 -->
+        <div class="bg-slate-50 dark:bg-slate-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
+          <div class="flex justify-between items-center text-[11px] mb-1.5">
+            <span class="text-slate-500 dark:text-slate-400 font-medium">전체 학습 달성도</span>
+            <span id="progress-text" class="font-mono font-bold text-sky-600 dark:text-sky-400">0/13 (0%)</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div id="progress-bar" class="bg-gradient-to-r from-sky-500 to-emerald-500 h-full w-0 transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <!-- 검색창 -->
+        <div class="relative">
+          <input id="chapter-search" type="text" placeholder="챕터 또는 키워드 검색..." 
+                 class="w-full bg-slate-100 dark:bg-slate-950 text-xs px-3 py-2 pl-8 rounded-lg border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500 text-slate-800 dark:text-slate-200 placeholder-slate-400">
+          <span class="absolute left-2.5 top-2.5 text-slate-400 text-xs">🔍</span>
+        </div>
+      </div>
+
+      <!-- 챕터 목록 (스크롤 영역) -->
+      <div class="flex-1 overflow-y-auto p-2">
+        <ul id="chapter-list" class="space-y-1"></ul>
+      </div>
+
+      <!-- 사이드바 푸터 (출처 및 라이선스) -->
+      <div class="p-3 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
+        <div>원작: Tony R. Kuphaldt</div>
+        <div class="truncate">Lessons In Electric Circuits Vol. III</div>
+        <div class="mt-1 text-slate-500 dark:text-slate-600">Licensed under CC BY 4.0</div>
+      </div>
+    </aside>
+
+    <!-- 2. 우측 메인 콘텐츠 영역 -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+
+      <!-- 상단 네비게이션 헤더 -->
+      <header class="h-14 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-6 z-30">
+        <div class="flex items-center gap-3">
+          <!-- 모바일 사이드바 열기 버튼 -->
+          <button id="sidebar-toggle" class="lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+            ☰
+          </button>
+          
+          <div class="flex items-center gap-2">
+            <span id="chapter-badge" class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/80">
+              Chapter 1 · Phase 1
+            </span>
+          </div>
+        </div>
+
+        <!-- 헤더 우측 유틸리티 버튼 -->
+        <div class="flex items-center gap-2">
+          <!-- 학습 완료 토글 버튼 -->
+          <button id="btn-toggle-complete" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition-colors flex items-center gap-1.5">
+            학습 완료로 표시
+          </button>
+
+          <!-- 다크 모드 토글 -->
+          <button id="theme-toggle" title="다크/라이트 모드 전환" 
+                  class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+            🌓
+          </button>
+        </div>
+      </header>
+
+      <!-- 스크롤 가능한 메인 바디 -->
+      <div id="main-content" class="flex-1 overflow-y-auto p-4 md:p-8 max-w-6xl mx-auto w-full">
+        
+        <!-- 챕터 헤더 정보 -->
+        <section class="mb-6">
+          <div class="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+            <h2 id="chapter-title-ko" class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              증폭기와 능동 소자
+            </h2>
+            <span id="chapter-pages" class="text-xs font-mono text-slate-400 dark:text-slate-500">
+              교재 원문: pp. 1 ~ 26
+            </span>
+          </div>
+          <div id="chapter-title-en" class="text-sm font-medium text-sky-600 dark:text-sky-400 mb-3">
+            Amplifiers and Active Devices
+          </div>
+          <p id="chapter-desc" class="text-xs md:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+            전기 회로에서 전자 회로로의 진화, 능동 소자의 본질과 에너지 보존 법칙, 데시벨(dB)의 원리와 감쇠기 회로 분석.
+          </p>
+          <div id="chapter-tags" class="flex flex-wrap gap-1.5"></div>
+        </section>
+
+        <!-- 4개 서브탭 내비게이션 바 -->
+        <div class="border-b border-slate-200 dark:border-slate-800 mb-6 flex overflow-x-auto gap-2">
+          <button data-tab-target="concepts" class="px-4 py-2.5 text-xs font-bold border-b-2 border-sky-500 text-sky-600 dark:text-sky-400 transition-colors whitespace-nowrap">
+            📌 핵심 요약 (Key Concepts)
+          </button>
+          <button data-tab-target="lab" class="px-4 py-2.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors whitespace-nowrap flex items-center gap-1.5">
+            🎬 인터랙티브 랩 (Interactive Lab)
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          </button>
+          <button data-tab-target="deepdive" class="px-4 py-2.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors whitespace-nowrap">
+            🔍 심층 탐구 (Deep Dive)
+          </button>
+          <button data-tab-target="resources" class="px-4 py-2.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors whitespace-nowrap">
+            🌐 추천 보충 자료 (Resources)
+          </button>
+        </div>
+
+        <!-- 탭 1: 핵심 요약 -->
+        <div id="tab-content-concepts" class="tab-content-fade"></div>
+
+        <!-- 탭 2: 인터랙티브 랩 (시뮬레이터) -->
+        <div id="tab-content-lab" class="hidden"></div>
+
+        <!-- 탭 3: 심층 탐구 -->
+        <div id="tab-content-deepdive" class="hidden"></div>
+
+        <!-- 탭 4: 추천 보충 자료 -->
+        <div id="tab-content-resources" class="hidden"></div>
+
+        <!-- 하단 챕터 페이징 이동 바 -->
+        <div class="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs">
+          <button id="btn-prev-chapter" class="px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            ← 이전 챕터
+          </button>
+          <div class="text-[11px] text-slate-400">
+            SemiLearn · Lessons In Electric Circuits Vol. III
+          </div>
+          <button id="btn-next-chapter" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            다음 챕터 →
+          </button>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- 스크립트 로드 순서: 데이터 -> 시뮬레이션 모듈들 -> 메인 앱 -->
+  <script src="js/chapters/chapters-data.js"></script>
+  <script src="js/simulations/sim-ch1.js"></script>
+  <script src="js/simulations/sim-ch2.js"></script>
+  <script src="js/simulations/sim-ch3.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
