@@ -58,10 +58,10 @@ window.CHAPTERS_DATA = [
         desc: '브라우저에서 실시간으로 신호원 전압과 저항 감쇠기 회로를 조작하고 오실로스코프로 파형을 관찰할 수 있는 인터랙티브 시뮬레이터입니다.'
       },
       {
-        title: 'AllAboutCircuits: Volume III Chapter 1 원문 강좌',
-        url: 'https://www.allaboutcircuits.com/textbook/semiconductors/chpt-1/electric-to-electronic/',
+        title: 'ibiblio Open Book: Vol. III Ch.1 원문 (Kuphaldt 공식)',
+        url: 'https://www.ibiblio.org/kuphaldt/electricCircuits/Semi/SEMI_1.html',
         type: 'Reading',
-        desc: 'Tony R. Kuphaldt 교재 원문 웹 버전 및 커뮤니티 토론 문서.'
+        desc: 'Tony R. Kuphaldt 저자가 직접 공개한 Open Book Project 원본 HTML 강좌. 증폭기·능동 소자·데시벨·감쇠기 전 절을 무료로 열람할 수 있습니다.'
       },
       {
         title: 'Khan Academy: 데시벨(dB)과 로그 척도의 직관적 이해',
