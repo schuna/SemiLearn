@@ -7,7 +7,7 @@
   'use strict';
 
   let currentChapterId = 1;
-  let activeTab = 'concepts'; // 'concepts', 'lab', 'deepdive', 'resources'
+  let activeTab = 'concepts'; // 'concepts', 'lab', 'deepdive', 'resources', 'reader'
   let completedChapters = new Set(JSON.parse(localStorage.getItem('semilearn_completed') || '[]'));
   let currentSimulator = null;
 
@@ -27,6 +27,7 @@
     tabLab: document.getElementById('tab-content-lab'),
     tabDeepdive: document.getElementById('tab-content-deepdive'),
     tabResources: document.getElementById('tab-content-resources'),
+    tabReader: document.getElementById('tab-content-reader'),
     
     // 버튼
     prevBtn: document.getElementById('btn-prev-chapter'),
@@ -54,6 +55,11 @@
     
     loadChapter(currentChapterId);
     updateProgress();
+    window.addEventListener('hashchange', () => {
+      const slug = window.location.hash.slice(1);
+      const chapter = window.CHAPTERS_DATA.find(c => c.slug === slug || `ch${c.id}` === slug);
+      if (chapter && chapter.id !== currentChapterId) loadChapter(chapter.id);
+    });
   }
 
   // 테마 초기화
@@ -162,6 +168,7 @@
     // 이전 활성 시뮬레이터 중지
     if (currentSimulator && typeof currentSimulator.stop === 'function') {
       currentSimulator.stop();
+      currentSimulator.dispose?.();
       currentSimulator = null;
     }
 
@@ -193,6 +200,9 @@
     // 3. 외부 리소스 탭 렌더링
     renderResources(chapter);
 
+    // Ch 1 교재 읽기 파일럿
+    renderReader(chapter);
+
     // 4. 인터랙티브 랩 탭 준비
     renderLab(chapter);
 
@@ -205,6 +215,94 @@
 
     // 수식 렌더링 (KaTeX)
     renderFormulas();
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+  }
+
+  function renderReader(chapter) {
+    if (!elements.tabReader) return;
+    if (chapter.id !== 1 || !window.CH1_READER) {
+      elements.tabReader.innerHTML = '<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 text-sm text-slate-600 dark:text-slate-300">교재 원문·번역은 현재 Ch 1에서만 시범 제공됩니다. 다른 장은 아직 작성되지 않았습니다.</div>';
+      return;
+    }
+
+    const reader = window.CH1_READER;
+    elements.tabReader.innerHTML = `
+      <div class="space-y-5">
+        <div class="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-4 text-xs leading-relaxed text-amber-900 dark:text-amber-200">
+          <strong>Ch 1 부분 공개 · 절별 원문과 번역</strong><br>
+          1.1·1.2절은 본문을 번역했고, 나머지 절은 선정 문장만 번역했습니다. 그림·수식의 완전한 대조본은 아직 아닙니다.
+          전체 본문은 <a class="underline font-semibold" href="${reader.source}" target="_blank" rel="noopener noreferrer">공식 교재 Ch 1 ↗</a> 또는 아래 절별 PDF 링크에서 확인하세요.
+        </div>
+        <nav aria-label="Ch 1 절 목차" class="flex flex-wrap gap-2">
+          ${reader.sections.map(section => `<button type="button" data-reader-section="${section.id}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-200 hover:border-sky-500">${escapeHtml(section.title)}</button>`).join('')}
+        </nav>
+        ${reader.sections.map(section => `
+          <section id="reader-${section.id}" class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/90 p-4 md:p-6 scroll-mt-4">
+            <div class="flex flex-wrap items-start justify-between gap-2 mb-4">
+              <div><h3 class="font-bold text-slate-900 dark:text-white">${escapeHtml(section.title)}</h3><p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(section.originalTitle)} · 교재 pp. ${escapeHtml(section.textbookPages)}</p></div>
+              <div class="text-xs text-right"><div class="text-amber-700 dark:text-amber-300">${escapeHtml(section.coverage)}</div><a class="underline text-sky-700 dark:text-sky-300" href="SEMI.pdf#page=${section.pdfPage}" target="_blank" rel="noopener noreferrer">원본 PDF 해당 절 ↗</a></div>
+            </div>
+            ${section.pairs.map(pair => `
+              <div id="reader-pair-${pair.id}" class="mb-5 last:mb-0 border-t border-slate-200 dark:border-slate-700 pt-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div lang="en" class="rounded-lg bg-slate-50 dark:bg-slate-900 p-4">
+                  <div class="text-[11px] font-bold text-sky-700 dark:text-sky-400 mb-2">EN · 교재 원문 발췌</div>
+                  <p class="text-sm leading-7 text-slate-800 dark:text-slate-200">${escapeHtml(pair.en)}</p>
+                </div>
+                <div lang="ko" class="rounded-lg bg-sky-50 dark:bg-sky-950/30 p-4">
+                  <div class="text-[11px] font-bold text-sky-700 dark:text-sky-400 mb-2">KO · 한국어 번역</div>
+                  <p class="text-sm leading-7 text-slate-800 dark:text-slate-200">${escapeHtml(pair.ko)}</p>
+                </div>
+              </div>
+              <div class="mt-3 text-xs leading-6 text-slate-600 dark:text-slate-300"><strong>보충 설명 ·</strong> ${escapeHtml(pair.note)}</div>
+              </div>
+            `).join('')}
+            ${section.formulas?.length ? `
+              <div class="mt-5 border-t border-slate-200 dark:border-slate-700 pt-4">
+                <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">관련 수식 · 교재 내용을 읽기 쉽게 재표기</h4>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                  ${section.formulas.map(formula => `
+                    <div class="rounded-lg bg-slate-50 dark:bg-slate-900 p-3 text-xs leading-relaxed">
+                      <div class="font-bold text-sky-700 dark:text-sky-300 mb-1">${escapeHtml(formula.name)}</div>
+                      <code class="block text-sm whitespace-normal break-words text-slate-900 dark:text-white">${escapeHtml(formula.expression)}</code>
+                      <div class="mt-1 text-slate-500 dark:text-slate-400">조건: ${escapeHtml(formula.condition)}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+            ${section.subsections?.length ? `
+              <div class="mt-5 border-t border-slate-200 dark:border-slate-700 pt-4">
+                <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 mb-3">감쇠기 소절별 원문 발췌·번역</h4>
+                <div class="space-y-3">
+                  ${section.subsections.map(subsection => `
+                    <div id="reader-${subsection.id}" class="rounded-lg border border-slate-200 dark:border-slate-700 p-3 md:p-4">
+                      <div class="flex flex-wrap justify-between gap-2 mb-2">
+                        <h5 class="text-xs font-bold text-slate-900 dark:text-white">${escapeHtml(subsection.title)}</h5>
+                        <a class="text-[11px] underline text-sky-700 dark:text-sky-300" href="SEMI.pdf#page=${subsection.pdfPage}" target="_blank" rel="noopener noreferrer">해당 PDF 쪽 ↗</a>
+                      </div>
+                      <p lang="en" class="text-xs leading-6 text-slate-600 dark:text-slate-300">${escapeHtml(subsection.en)}</p>
+                      <p lang="ko" class="text-xs leading-6 mt-2 text-slate-800 dark:text-slate-100">${escapeHtml(subsection.ko)}</p>
+                      <p class="text-xs leading-6 mt-2 text-slate-500 dark:text-slate-400">보충 설명 · ${escapeHtml(subsection.note)}</p>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </section>
+        `).join('')}
+        <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          원저자 Tony R. Kuphaldt · 로컬 PDF ${escapeHtml(reader.edition)} · <a class="underline" href="${reader.source}" target="_blank" rel="noopener noreferrer">원본 Ch 1</a> ·
+          <a class="underline" href="${reader.license}" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.
+          한국어 번역·보충 설명은 SemiLearn에서 작성했습니다. 원본의 나머지 문장과 그림은 공식 페이지에서 확인할 수 있습니다.
+        </p>
+      </div>
+    `;
   }
 
   // 핵심 개념 탭 내용 렌더링
@@ -254,6 +352,9 @@
     `;
 
     elements.tabConcepts.innerHTML = html;
+    if (chapter.id === 1) {
+      elements.tabConcepts.insertAdjacentHTML('beforeend', '<button type="button" data-open-reader class="mt-5 px-4 py-2 rounded-lg bg-sky-600 text-white text-xs font-semibold hover:bg-sky-500">Ch 1 교재 원문·번역 보기 →</button>');
+    }
   }
 
   // 심층 탐구 탭 렌더링
@@ -265,6 +366,23 @@
           ${chapter.deepDiveHtml}
         </div>
       `;
+      if (chapter.id === 1 && window.CH1_READER) {
+        const supplement = window.CH1_READER.supplement;
+        elements.tabDeepdive.insertAdjacentHTML('beforeend', `
+          <article class="mt-5 rounded-xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/30 p-5 md:p-6 text-sm leading-relaxed">
+            <p class="text-[11px] font-bold text-sky-700 dark:text-sky-300 mb-2">외부 자료를 대조해 작성한 Ch 1 보충 해설</p>
+            <h4 class="font-bold text-slate-900 dark:text-white mb-3">${escapeHtml(supplement.title)}</h4>
+            <p class="mb-2"><strong>질문:</strong> ${escapeHtml(supplement.question)}</p>
+            <p class="mb-2">${escapeHtml(supplement.explanation)}</p>
+            <p class="mb-2"><strong>예:</strong> ${escapeHtml(supplement.example)}</p>
+            <p class="mb-3"><strong>흔한 오해:</strong> ${escapeHtml(supplement.misconception)}</p>
+            <div class="text-xs text-slate-600 dark:text-slate-300"><strong>검증 자료:</strong>
+              ${supplement.sources.map(source => `<a class="underline ml-2" href="${source.url}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)} ↗</a>`).join('')}
+            </div>
+            <button type="button" data-open-reader class="mt-4 text-xs font-semibold text-sky-700 dark:text-sky-300 underline">교재 발췌·번역과 비교하기 →</button>
+          </article>
+        `);
+      }
     } else {
       elements.tabDeepdive.innerHTML = `
         <div class="bg-white dark:bg-slate-800/80 p-8 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
@@ -342,6 +460,7 @@
         </div>
       `;
     }
+    if (currentSimulator && activeTab !== 'lab') currentSimulator.stop();
   }
 
   // KaTeX 수식 렌더링
@@ -363,6 +482,7 @@
 
   // 탭 전환 처리
   function switchTab(tabId) {
+    if (activeTab === 'lab' && tabId !== 'lab') currentSimulator?.stop();
     activeTab = tabId;
     const tabButtons = document.querySelectorAll('[data-tab-target]');
     tabButtons.forEach(btn => {
@@ -374,7 +494,7 @@
       }
     });
 
-    ['concepts', 'lab', 'deepdive', 'resources'].forEach(t => {
+    ['concepts', 'lab', 'deepdive', 'resources', 'reader'].forEach(t => {
       const el = document.getElementById(`tab-content-${t}`);
       if (el) {
         if (t === tabId) {
@@ -389,7 +509,10 @@
 
     // 랩 탭 활성화 시 캔버스 크기 재조정
     if (tabId === 'lab' && currentSimulator && typeof currentSimulator.resizeCanvas === 'function') {
-      setTimeout(() => currentSimulator.resizeCanvas(), 50);
+      setTimeout(() => {
+        currentSimulator.resizeCanvas();
+        currentSimulator.startLoop();
+      }, 50);
     }
 
     renderFormulas();
@@ -397,6 +520,11 @@
 
   // 이벤트 바인딩
   function bindEvents() {
+    document.getElementById('main-content')?.addEventListener('click', event => {
+      if (event.target.closest('[data-open-reader]')) switchTab('reader');
+      const sectionButton = event.target.closest('[data-reader-section]');
+      if (sectionButton) document.getElementById(`reader-${sectionButton.dataset.readerSection}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
     // 탭 버튼 클릭 이벤트
     document.querySelectorAll('[data-tab-target]').forEach(btn => {
       btn.addEventListener('click', () => {

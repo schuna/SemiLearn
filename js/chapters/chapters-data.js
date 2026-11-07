@@ -64,10 +64,10 @@ window.CHAPTERS_DATA = [
         desc: 'Tony R. Kuphaldt 저자가 직접 공개한 Open Book Project 원본 HTML 강좌. 증폭기·능동 소자·데시벨·감쇠기 전 절을 무료로 열람할 수 있습니다.'
       },
       {
-        title: 'Khan Academy: 데시벨(dB)과 로그 척도의 직관적 이해',
-        url: 'https://www.khanacademy.org/science/physics/mechanical-waves-and-sound/sound-topic/v/sound-properties-amplitude-period-frequency-wavelength',
+        title: 'Khan Academy: 데시벨(dB)과 로그 척도',
+        url: 'https://www.khanacademy.org/science/physics/mechanical-waves-and-sound/sound-topic/v/decibel-scale',
         type: 'Lecture',
-        desc: '음향 전력 및 전압 비례에 따른 데시벨 공식의 유도와 물리적 의미 설명.'
+        desc: '소리의 강도를 이용해 10 log 척도의 의미를 설명합니다. 회로 전압비의 20 log 공식은 이 교재의 설명과 함께 비교하세요.'
       }
     ],
     simulationId: 'sim-ch1'
@@ -127,7 +127,7 @@ window.CHAPTERS_DATA = [
       },
       {
         title: 'HyperPhysics: 고체 물리 및 반도체 밴드 이론',
-        url: 'http://hyperphysics.phy-astr.gsu.edu/hbase/Solids/band.html',
+        url: 'https://www.hyperphysics.phy-astr.gsu.edu/hbase/Solids/band.html',
         type: 'Reference',
         desc: '조지아 주립대의 명쾌한 개념 맵 기반 반도체 물리 아카이브.'
       },
@@ -152,8 +152,8 @@ window.CHAPTERS_DATA = [
     tags: ['체크 밸브', '쇼클리 방정식', '전파 브리지 정류', '클리퍼/클램퍼', '제너 레귤레이터', '유도성 킥백(스너버)'],
     keyTakeaways: [
       {
-        title: '체크 밸브(Check Valve)와 다이오드 기호의 화살표',
-        desc: '다이오드는 유체의 역류를 막는 체크 밸브와 같습니다. 기호의 삼각형 화살표는 기술적 전통인 정전하(Conventional Current, +에서 -)의 이동 방향을 나타내며, 실제 전자(Electron) 흐름은 화살표 반대 방향입니다.'
+        title: '체크 밸브(Check Valve)와 다이오드의 극성',
+        desc: '다이오드는 유체의 역류를 막는 체크 밸브와 비슷합니다. 일반 P-N 다이오드 기호의 막대 쪽이 캐소드(K), 반대쪽이 애노드(A)입니다. 순방향 바이어스에서 관습 전류는 애노드에서 캐소드로 흐르고 전자의 이동 방향은 그 반대입니다.'
       },
       {
         title: '순방향 전압 강하($V_F$)와 쇼클리 다이오드 방정식',
@@ -194,10 +194,10 @@ window.CHAPTERS_DATA = [
         desc: 'AC 전압과 4개 다이오드의 턴온 상태를 실시간 전자 점선 흐름 애니메이션으로 직접 확인해보세요.'
       },
       {
-        title: 'PhET: 다이오드와 반도체 소자 전도 실험',
-        url: 'https://phet.colorado.edu/',
+        title: 'PhET Semiconductors: 도핑과 P-N 접합 실험',
+        url: 'https://phet.colorado.edu/en/simulations/semiconductor',
         type: 'Interactive',
-        desc: '다이오드의 순방향 및 역방향 바이어스 인가 시 공핍층의 두께 변화를 확인하는 시뮬레이션.'
+        desc: 'N형·P형 도핑과 P-N 접합의 단방향 전도 원리를 탐색하는 시뮬레이션입니다. Java via CheerpJ 실행을 지원하는 브라우저가 필요할 수 있습니다.'
       },
       {
         title: 'AllAboutCircuits: Diodes & Rectifiers 챕터 가이드',

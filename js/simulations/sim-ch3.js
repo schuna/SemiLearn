@@ -14,7 +14,8 @@ window.SimulatorCh3 = {
   acFrequency: 1.0,
   acVoltage: 10.0,
   hasFilterCap: false,
-  filterCapVal: 100, // uF
+  filterCapVal: 1000, // uF
+  loadResistance: 1000, // ohm
 
   // I-V 곡선 상태
   diodeVoltage: 0.65, // V
@@ -43,8 +44,8 @@ window.SimulatorCh3 = {
         </div>
 
         <!-- 캔버스 영역 -->
-        <div class="relative w-full aspect-[16/9] max-h-[360px] bg-slate-950 rounded-lg overflow-hidden border border-slate-800 shadow-inner">
-          <canvas id="ch3-canvas" class="w-full h-full block"></canvas>
+        <div class="relative w-full h-[480px] sm:h-auto sm:aspect-[16/9] sm:max-h-[360px] bg-slate-950 rounded-lg overflow-hidden border border-slate-800 shadow-inner">
+          <canvas id="ch3-canvas" class="w-full h-full block" role="img" aria-label="브리지 정류기 회로와 파형 또는 다이오드 전압 전류 특성"></canvas>
         </div>
 
         <!-- 동적 컨트롤 패널 -->
@@ -59,7 +60,8 @@ window.SimulatorCh3 = {
     this.bindEvents();
     this.renderControls();
     this.resizeCanvas();
-    window.addEventListener('resize', () => this.resizeCanvas());
+    this.resizeHandler = () => this.resizeCanvas();
+    window.addEventListener('resize', this.resizeHandler);
 
     this.startLoop();
   },
@@ -102,7 +104,7 @@ window.SimulatorCh3 = {
               <span>AC 입력 전압 (V_peak):</span>
               <span id="ch3-val-acv" class="font-mono text-amber-400 font-bold">${this.acVoltage.toFixed(1)} V</span>
             </div>
-            <input id="ch3-slider-acv" type="range" min="3.0" max="15.0" step="0.5" value="${this.acVoltage}" class="w-full accent-amber-500 cursor-pointer">
+            <input id="ch3-slider-acv" type="range" min="3.0" max="15.0" step="0.5" value="${this.acVoltage}" aria-label="AC 입력 피크 전압" class="w-full accent-amber-500 cursor-pointer">
           </div>
 
           <div>
@@ -110,7 +112,7 @@ window.SimulatorCh3 = {
               <span>교류 주파수 (Frequency):</span>
               <span id="ch3-val-freq" class="font-mono text-sky-400 font-bold">${this.acFrequency.toFixed(1)} Hz</span>
             </div>
-            <input id="ch3-slider-freq" type="range" min="0.5" max="3.0" step="0.5" value="${this.acFrequency}" class="w-full accent-sky-500 cursor-pointer">
+            <input id="ch3-slider-freq" type="range" min="0.5" max="3.0" step="0.5" value="${this.acFrequency}" aria-label="교류 주파수" class="w-full accent-sky-500 cursor-pointer">
           </div>
 
           <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-lg border border-slate-700">
@@ -123,6 +125,7 @@ window.SimulatorCh3 = {
             </button>
           </div>
         </div>
+        <p class="mt-2 text-[11px] text-slate-400">모델: 실리콘 다이오드 2개에서 총 1.4 V 강하, 부하 1 kΩ, 평활 커패시터 1000 µF. 주파수는 학습용 저속 AC입니다.</p>
       `;
 
       document.getElementById('ch3-slider-acv')?.addEventListener('input', (e) => {
@@ -148,7 +151,7 @@ window.SimulatorCh3 = {
               <span>인가 다이오드 전압 (V_D):</span>
               <span id="ch3-val-vd" class="font-mono text-amber-400 font-bold">${this.diodeVoltage.toFixed(2)} V</span>
             </div>
-            <input id="ch3-slider-vd" type="range" min="-2.0" max="0.85" step="0.01" value="${this.diodeVoltage}" class="w-full accent-amber-500 cursor-pointer">
+            <input id="ch3-slider-vd" type="range" min="-2.0" max="0.85" step="0.01" value="${this.diodeVoltage}" aria-label="다이오드 인가 전압" class="w-full accent-amber-500 cursor-pointer">
             <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
               <span>-2.0V (역방향)</span>
               <span>0V</span>
@@ -199,6 +202,11 @@ window.SimulatorCh3 = {
     }
   },
 
+  dispose() {
+    if (this.resizeHandler) window.removeEventListener('resize', this.resizeHandler);
+    this.resizeHandler = null;
+  },
+
   draw() {
     const { ctx, canvas } = this;
     if (!ctx || !canvas) return;
@@ -218,18 +226,19 @@ window.SimulatorCh3 = {
     const { ctx } = this;
     
     // 현재 입력 AC 순시 전압
-    const instantaneousVin = this.acVoltage * Math.sin(this.time * 2);
+    const instantaneousVin = this.acVoltage * Math.sin(this.time);
     const isPositiveHalf = instantaneousVin >= 0;
     const vDrop = 1.4; // 2개 다이오드 전압 강하 (실리콘 0.7V x 2)
     const isConducting = Math.abs(instantaneousVin) > vDrop;
 
     // 좌측: 브리지 회로 다이어그램 (40% 너비)
-    const circW = w * 0.44;
-    const cx = circW * 0.45;
-    const cy = h * 0.5;
-    const size = Math.min(circW, h) * 0.28;
+    const compact = w < 500;
+    const circW = compact ? w : w * 0.44;
+    const cx = compact ? w * 0.42 : circW * 0.45;
+    const cy = compact ? h * 0.27 : h * 0.5;
+    const size = compact ? Math.min(w * 0.21, h * 0.12) : Math.min(circW, h) * 0.28;
 
-    // 브리지 4개 노드 (마름모: 상(A), 우(B), 하(C), 좌(D))
+    // 브리지 4개 노드: 위 DC+, 아래 DC-, 좌/우 AC 입력
     const topNode = { x: cx, y: cy - size };
     const rightNode = { x: cx + size * 1.1, y: cy };
     const botNode = { x: cx, y: cy + size };
@@ -238,18 +247,25 @@ window.SimulatorCh3 = {
     // 회로 전선 그리기
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = '#475569';
-    ctx.beginPath();
-    // 마름모 브리지
-    ctx.moveTo(topNode.x, topNode.y); ctx.lineTo(rightNode.x, rightNode.y);
-    ctx.lineTo(botNode.x, botNode.y); ctx.lineTo(leftNode.x, leftNode.y);
-    ctx.closePath();
-    ctx.stroke();
+    const wireWithDiodeGap = (from, to, active) => {
+      const mx = (from.x + to.x) / 2;
+      const my = (from.y + to.y) / 2;
+      const dx = (to.x - from.x) / Math.hypot(to.x - from.x, to.y - from.y);
+      const dy = (to.y - from.y) / Math.hypot(to.x - from.x, to.y - from.y);
+      ctx.strokeStyle = active ? '#22c55e' : '#475569';
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y); ctx.lineTo(mx - dx * 15, my - dy * 15);
+      ctx.moveTo(mx + dx * 15, my + dy * 15); ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    };
 
-    // 부하 저항 (오른쪽으로 나와서 연결)
-    const loadX = rightNode.x + size * 0.6;
+    // 부하 저항은 DC+와 DC- 사이에 연결한다.
+    const loadX = rightNode.x + size * 0.55;
     ctx.beginPath();
-    ctx.moveTo(rightNode.x, rightNode.y);
-    ctx.lineTo(loadX, rightNode.y);
+    ctx.moveTo(topNode.x, topNode.y);
+    ctx.lineTo(loadX, topNode.y);
+    ctx.lineTo(loadX, cy - 20);
+    ctx.moveTo(loadX, cy + 20);
     ctx.lineTo(loadX, botNode.y);
     ctx.lineTo(botNode.x, botNode.y);
     ctx.stroke();
@@ -263,36 +279,60 @@ window.SimulatorCh3 = {
     ctx.font = '10px monospace';
     ctx.fillText('R_L', loadX + 12, cy + 4);
 
-    // 4개 다이오드 상태 및 심볼 그리기
-    // D1 (좌 -> 상): 양의 반주기 도통
-    // D2 (하 -> 좌): 음의 반주기 도통
-    // D3 (하 -> 우): 양의 반주기 도통
-    // D4 (우 -> 상): 음의 반주기 도통
+    // 양의 반주기: 좌 AC -> D1 -> 부하 -> D3 -> 우 AC
+    // 음의 반주기: 우 AC -> D2 -> 부하 -> D4 -> 좌 AC
     const d1Active = isPositiveHalf && isConducting;
     const d3Active = isPositiveHalf && isConducting;
     const d2Active = !isPositiveHalf && isConducting;
     const d4Active = !isPositiveHalf && isConducting;
+    wireWithDiodeGap(leftNode, topNode, d1Active);
+    wireWithDiodeGap(rightNode, topNode, d2Active);
+    wireWithDiodeGap(botNode, rightNode, d3Active);
+    wireWithDiodeGap(botNode, leftNode, d4Active);
 
-    const drawDiodeSymbol = (x, y, active, label) => {
+    const drawDiodeSymbol = (from, to, active, label) => {
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(x, y, 12, 0, Math.PI * 2);
-      ctx.fillStyle = active ? 'rgba(34, 197, 94, 0.3)' : 'rgba(30, 41, 59, 0.8)';
-      ctx.fill();
+      const x = (from.x + to.x) / 2;
+      const y = (from.y + to.y) / 2;
+      const angle = Math.atan2(to.y - from.y, to.x - from.x);
+      ctx.translate(x, y);
+      ctx.rotate(angle);
       ctx.strokeStyle = active ? '#22c55e' : '#64748b';
-      ctx.lineWidth = active ? 2.5 : 1.5;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(-14, -10, 28, 20);
+      ctx.beginPath();
+      ctx.moveTo(-11, -7); ctx.lineTo(5, 0); ctx.lineTo(-11, 7); ctx.closePath();
       ctx.stroke();
-
+      ctx.beginPath(); ctx.moveTo(6, -9); ctx.lineTo(6, 9); ctx.stroke();
+      ctx.rotate(-angle);
       ctx.fillStyle = active ? '#4ade80' : '#94a3b8';
       ctx.font = 'bold 9px monospace';
-      ctx.fillText(label, x - 6, y + 3);
+      ctx.fillText(label, -7, -14);
       ctx.restore();
     };
 
-    drawDiodeSymbol((leftNode.x + topNode.x) / 2, (leftNode.y + topNode.y) / 2, d1Active, 'D1');
-    drawDiodeSymbol((botNode.x + rightNode.x) / 2, (botNode.y + rightNode.y) / 2, d3Active, 'D3');
-    drawDiodeSymbol((leftNode.x + botNode.x) / 2, (leftNode.y + botNode.y) / 2, d2Active, 'D2');
-    drawDiodeSymbol((rightNode.x + topNode.x) / 2, (rightNode.y + topNode.y) / 2, d4Active, 'D4');
+    drawDiodeSymbol(leftNode, topNode, d1Active, 'D1');
+    drawDiodeSymbol(rightNode, topNode, d2Active, 'D2');
+    drawDiodeSymbol(botNode, rightNode, d3Active, 'D3');
+    drawDiodeSymbol(botNode, leftNode, d4Active, 'D4');
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '10px monospace';
+    ctx.fillText('AC A', leftNode.x - 34, leftNode.y - 8);
+    ctx.fillText('AC B', rightNode.x + 5, rightNode.y - 8);
+    ctx.fillText('DC+', topNode.x - 15, topNode.y - 8);
+    ctx.fillText('DC-', botNode.x - 15, botNode.y + 16);
+    if (isConducting) {
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(topNode.x, topNode.y);
+      ctx.lineTo(loadX, topNode.y);
+      ctx.lineTo(loadX, cy - 20);
+      ctx.moveTo(loadX, cy + 20);
+      ctx.lineTo(loadX, botNode.y);
+      ctx.lineTo(botNode.x, botNode.y);
+      ctx.stroke();
+    }
 
     // 부하 전류 방향 화살표 (언제나 위 -> 아래)
     if (isConducting) {
@@ -305,10 +345,10 @@ window.SimulatorCh3 = {
     }
 
     // 우측: 오실로스코프 파형 뷰 (55% 너비)
-    const scopeX = w * 0.48;
-    const scopeW = w * 0.49;
-    const scopeH = h * 0.84;
-    const scopeY = h * 0.08;
+    const scopeX = compact ? w * 0.06 : w * 0.48;
+    const scopeW = compact ? w * 0.88 : w * 0.49;
+    const scopeH = compact ? h * 0.38 : h * 0.84;
+    const scopeY = compact ? h * 0.57 : h * 0.08;
 
     // 스코프 배경
     ctx.fillStyle = '#020617';
@@ -333,7 +373,7 @@ window.SimulatorCh3 = {
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     for (let x = 0; x < scopeW; x++) {
-      const t = this.time * 2 + (x / scopeW) * Math.PI * 4;
+      const t = this.time + (x / scopeW) * Math.PI * 4;
       const vin = this.acVoltage * Math.sin(t);
       const y = scopeMidY - vin * vScale;
       if (x === 0) ctx.moveTo(scopeX + x, y);
@@ -342,20 +382,28 @@ window.SimulatorCh3 = {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // 2. 정류된 출력 DC 맥류 파형 (호박색 실선)
+    // 2. 정류된 출력. C ON에서는 다이오드 충전과 R_L C 방전을 적분한다.
     ctx.strokeStyle = '#f59e0b';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
+    const omega = 2 * Math.PI * this.acFrequency;
+    const windowSeconds = 2 / this.acFrequency;
+    const dt = windowSeconds / scopeW;
+    const tau = this.loadResistance * this.filterCapVal * 1e-6;
+    let capacitorV = 0;
+    // 화면 시작 전에 정상 상태에 접근하도록 네 주기 충·방전을 계산한다.
+    for (let i = -Math.ceil(scopeW * 4); i < 0; i++) {
+      const phase = omega * (i * dt + this.time / omega);
+      const rectified = Math.max(0, Math.abs(this.acVoltage * Math.sin(phase)) - vDrop);
+      capacitorV = Math.max(rectified, capacitorV * Math.exp(-dt / tau));
+    }
     for (let x = 0; x < scopeW; x++) {
-      const t = this.time * 2 + (x / scopeW) * Math.PI * 4;
+      const t = this.time + (x / scopeW) * Math.PI * 4;
       const rawVin = Math.abs(this.acVoltage * Math.sin(t));
       let vout = Math.max(0, rawVin - vDrop);
-
-      // 커패시터 평활화 필터 흉내
       if (this.hasFilterCap) {
-        const peakV = this.acVoltage - vDrop;
-        const rippleFactor = 0.2;
-        vout = peakV * (1 - rippleFactor * (1 - Math.cos(t * 2) * 0.3));
+        capacitorV = Math.max(vout, capacitorV * Math.exp(-dt / tau));
+        vout = capacitorV;
       }
 
       const y = scopeMidY - vout * vScale;
@@ -374,9 +422,13 @@ window.SimulatorCh3 = {
 
   drawIVCurve(w, h) {
     const { ctx } = this;
-    const margin = 40;
-    const originX = w * 0.35;
-    const originY = h * 0.75;
+    const compact = w < 500;
+    const margin = compact ? 25 : 42;
+    const minV = -2;
+    const maxV = 0.85;
+    const chartRight = w - margin;
+    const originX = margin + (-minV / (maxV - minV)) * (chartRight - margin);
+    const originY = h * 0.78;
 
     // 축 그리기
     ctx.strokeStyle = '#64748b';
@@ -388,33 +440,35 @@ window.SimulatorCh3 = {
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '11px sans-serif';
-    ctx.fillText('전압 VD (V) →', w - margin - 60, originY - 8);
-    ctx.fillText('↑ 전류 ID (mA)', originX + 8, margin + 14);
+    ctx.fillText('VD (V) →', chartRight - 65, h - 28);
+    ctx.fillText(compact ? 'ID (mA)' : '↑ 전류 ID (mA)', compact ? margin : originX + 8, margin + 14);
 
     // 문턱 전압 설정
     const vfMap = { silicon: 0.7, germanium: 0.3, schottky: 0.25 };
     const vf = vfMap[this.diodeType] || 0.7;
 
-    const vScale = (w - originX - margin) / 1.0; // 1V = 너비
+    const vScale = (chartRight - margin) / (maxV - minV);
     const iScale = (originY - margin) / 100.0; // 100mA = 높이
+    // 25°C, n=2의 쇼클리 식. 각 재질에서 Vf일 때 10mA가 되도록 Is를 보정한다.
+    const thermalVoltage = 0.02585;
+    const ideality = 2;
+    const saturationCurrent = 0.01 / Math.expm1(vf / (ideality * thermalVoltage));
+    const currentMilliamp = voltage => 1000 * saturationCurrent * Math.expm1(voltage / (ideality * thermalVoltage));
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px sans-serif';
+    ctx.fillText(compact ? '25°C · n=2 · 학습용 모델' : '25°C · n=2 · Vf에서 10mA로 보정한 학습용 모델', margin, h - 8);
 
     // I-V 곡선 계산 및 그리기
     ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    for (let vx = -2.0; vx <= 0.85; vx += 0.01) {
+    for (let i = 0; i <= 285; i++) {
+      const vx = minV + i * 0.01;
       const scrX = originX + vx * vScale;
-      // 쇼클리 다이오드 지수 전류 계산
-      let id = 0;
-      if (vx > 0) {
-        id = 0.001 * Math.exp(vx / (vf * 0.15));
-      } else {
-        id = -0.0001; // 역방향 포화 누설전류
-      }
-      if (id > 110) id = 110;
-      const scrY = originY - id * iScale;
+      const id = currentMilliamp(vx);
+      const scrY = originY - Math.max(-5, Math.min(100, id)) * iScale;
 
-      if (vx === -2.0) ctx.moveTo(scrX, scrY);
+      if (i === 0) ctx.moveTo(scrX, scrY);
       else ctx.lineTo(scrX, scrY);
     }
     ctx.stroke();
@@ -433,12 +487,9 @@ window.SimulatorCh3 = {
     ctx.fillText(`Vf ≈ ${vf}V`, kneeX - 15, originY + 16);
 
     // 현재 동작점 (Q-Point) 표시
-    let currentId = 0;
-    if (this.diodeVoltage > 0) {
-      currentId = 0.001 * Math.exp(this.diodeVoltage / (vf * 0.15));
-    }
+    const currentId = currentMilliamp(this.diodeVoltage);
     const qX = originX + this.diodeVoltage * vScale;
-    const qY = originY - Math.min(100, currentId) * iScale;
+    const qY = originY - Math.max(-5, Math.min(100, currentId)) * iScale;
 
     ctx.beginPath();
     ctx.arc(qX, qY, 6, 0, Math.PI * 2);
@@ -450,6 +501,7 @@ window.SimulatorCh3 = {
 
     ctx.fillStyle = '#f59e0b';
     ctx.font = 'bold 11px monospace';
-    ctx.fillText(`Q-Point (${this.diodeVoltage.toFixed(2)}V, ${currentId.toFixed(1)}mA)`, qX + 10, qY - 6);
+    const label = `(${this.diodeVoltage.toFixed(2)} V, ${currentId.toFixed(2)} mA)`;
+    ctx.fillText(label, Math.min(w - ctx.measureText(label).width - 8, Math.max(8, qX + 10)), Math.max(18, qY - 7));
   }
 };

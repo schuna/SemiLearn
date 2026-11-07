@@ -40,7 +40,7 @@ window.SimulatorCh1 = {
 
         <!-- 캔버스 영역 -->
         <div class="relative w-full aspect-[16/9] max-h-[360px] bg-slate-950 rounded-lg overflow-hidden border border-slate-800 shadow-inner">
-          <canvas id="ch1-canvas" class="w-full h-full block"></canvas>
+          <canvas id="ch1-canvas" class="w-full h-full block" role="img" aria-label="입력과 출력 전압 파형 및 전원 한계"></canvas>
           
           <!-- 범례 -->
           <div class="absolute top-3 right-3 bg-slate-900/90 backdrop-blur border border-slate-700/60 rounded-md px-3 py-2 text-xs flex flex-col gap-1.5 shadow">
@@ -66,7 +66,7 @@ window.SimulatorCh1 = {
             <div id="ch1-metric-gain" class="text-lg font-bold text-sky-400 font-mono">5.0x</div>
           </div>
           <div class="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700/50">
-            <div class="text-[11px] text-slate-400">전압 이득 (dB)</div>
+            <div class="text-[11px] text-slate-400">설정 전압 이득 (dB)</div>
             <div id="ch1-metric-db" class="text-lg font-bold text-emerald-400 font-mono">14.0 dB</div>
           </div>
           <div class="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700/50">
@@ -86,7 +86,7 @@ window.SimulatorCh1 = {
               <span>전압 이득 (Gain Av):</span>
               <span id="ch1-val-gain" class="font-mono text-sky-400 font-bold">5.0</span>
             </div>
-            <input id="ch1-slider-gain" type="range" min="1" max="15" step="0.5" value="5" class="w-full accent-sky-500 cursor-pointer">
+            <input id="ch1-slider-gain" type="range" min="1" max="15" step="0.5" value="5" aria-label="전압 이득" class="w-full accent-sky-500 cursor-pointer">
           </div>
 
           <div>
@@ -94,7 +94,7 @@ window.SimulatorCh1 = {
               <span>입력 진폭 (Vin Peak):</span>
               <span id="ch1-val-inamp" class="font-mono text-yellow-400 font-bold">1.0 V</span>
             </div>
-            <input id="ch1-slider-inamp" type="range" min="0.2" max="3.0" step="0.1" value="1.0" class="w-full accent-yellow-500 cursor-pointer">
+            <input id="ch1-slider-inamp" type="range" min="0.2" max="3.0" step="0.1" value="1.0" aria-label="입력 진폭" class="w-full accent-yellow-500 cursor-pointer">
           </div>
 
           <div>
@@ -102,7 +102,16 @@ window.SimulatorCh1 = {
               <span>공급 전원 (Vcc):</span>
               <span id="ch1-val-vsupply" class="font-mono text-red-400 font-bold">±10.0 V</span>
             </div>
-            <input id="ch1-slider-vsupply" type="range" min="3.0" max="15.0" step="0.5" value="10.0" class="w-full accent-red-500 cursor-pointer">
+            <input id="ch1-slider-vsupply" type="range" min="3.0" max="15.0" step="0.5" value="10.0" aria-label="공급 전원" class="w-full accent-red-500 cursor-pointer">
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">클리핑이 발생하면 실제 출력 파형의 이득은 설정 이득보다 작아집니다. 표시는 전원 제한 전의 설정값입니다.</p>
+        <div class="mt-4 p-3 bg-slate-800/60 rounded-lg border border-slate-700 text-xs">
+          <div class="font-semibold text-slate-200 mb-2">전압비·감쇠기 dB 계산기 <span class="font-normal text-slate-400">(동일 임피던스 가정)</span></div>
+          <div class="flex flex-wrap items-center gap-2">
+            <label>입력 전압 <input id="ch1-db-in" type="number" min="0.001" step="0.1" value="1" class="w-20 p-1 rounded bg-slate-950 border border-slate-600" aria-label="계산기 입력 전압"> V</label>
+            <label>출력 전압 <input id="ch1-db-out" type="number" min="0.001" step="0.1" value="0.5" class="w-20 p-1 rounded bg-slate-950 border border-slate-600" aria-label="계산기 출력 전압"> V</label>
+            <output id="ch1-db-result" class="font-mono text-emerald-400" aria-live="polite"></output>
           </div>
         </div>
       </div>
@@ -114,7 +123,8 @@ window.SimulatorCh1 = {
 
     this.bindEvents();
     this.resizeCanvas();
-    window.addEventListener('resize', () => this.resizeCanvas());
+    this.resizeHandler = () => this.resizeCanvas();
+    window.addEventListener('resize', this.resizeHandler);
 
     this.startLoop();
   },
@@ -163,6 +173,21 @@ window.SimulatorCh1 = {
       this.updateMetrics();
     });
 
+    const dbIn = document.getElementById('ch1-db-in');
+    const dbOut = document.getElementById('ch1-db-out');
+    const updateDbCalculator = () => {
+      const vin = Number(dbIn.value);
+      const vout = Number(dbOut.value);
+      const result = document.getElementById('ch1-db-result');
+      if (!result) return;
+      result.textContent = vin > 0 && vout > 0
+        ? `${(20 * Math.log10(vout / vin)).toFixed(2)} dB (${vout < vin ? '감쇠' : vout > vin ? '증폭' : '동일'})`
+        : '두 전압에 양수를 입력하세요.';
+    };
+    dbIn?.addEventListener('input', updateDbCalculator);
+    dbOut?.addEventListener('input', updateDbCalculator);
+    updateDbCalculator();
+
     this.updateMetrics();
   },
 
@@ -206,6 +231,11 @@ window.SimulatorCh1 = {
       cancelAnimationFrame(this.animId);
       this.animId = null;
     }
+  },
+
+  dispose() {
+    if (this.resizeHandler) window.removeEventListener('resize', this.resizeHandler);
+    this.resizeHandler = null;
   },
 
   draw() {

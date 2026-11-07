@@ -1,0 +1,12 @@
+{
+  "name": "semilearn",
+  "private": true,
+  "scripts": {
+    "serve": "node scripts/serve.cjs",
+    "capture:phase1": "playwright test --config playwright.config.cjs",
+    "test:smoke": "node tests/phase1-smoke.cjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0"
+  }
+}

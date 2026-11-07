@@ -43,12 +43,12 @@ window.SimulatorCh2 = {
 
         <!-- 캔버스 영역 -->
         <div class="relative w-full aspect-[16/9] max-h-[350px] bg-slate-950 rounded-lg overflow-hidden border border-slate-800 shadow-inner">
-          <canvas id="ch2-canvas" class="w-full h-full block"></canvas>
-          <div id="ch2-overlay-info" class="absolute bottom-2 left-3 text-xs bg-slate-900/80 px-2.5 py-1.5 rounded border border-slate-700/60 font-mono text-slate-300 pointer-events-none"></div>
+          <canvas id="ch2-canvas" class="w-full h-full block" role="img" aria-label="P-N 접합의 공핍층 또는 에너지 밴드 개념 애니메이션"></canvas>
         </div>
 
         <!-- 동적 컨트롤 패널 -->
         <div id="ch2-controls" class="mt-4 pt-2"></div>
+        <p class="mt-3 text-[11px] text-slate-400">개념 애니메이션: 공핍층 폭과 입자 수는 실제 소자의 정량 계산값이 아닙니다. 온도·재료에 따른 밴드 점유도 정성적으로 표현합니다.</p>
       </div>
     `;
 
@@ -60,7 +60,8 @@ window.SimulatorCh2 = {
     this.bindEvents();
     this.renderControls();
     this.resizeCanvas();
-    window.addEventListener('resize', () => this.resizeCanvas());
+    this.resizeHandler = () => this.resizeCanvas();
+    window.addEventListener('resize', this.resizeHandler);
 
     this.startLoop();
   },
@@ -92,7 +93,7 @@ window.SimulatorCh2 = {
         x: 0.15 + Math.random() * 0.7,
         state: 'valence', // 'valence' or 'conduction'
         vy: 0,
-        y: 0.75 + (Math.random() - 0.5) * 0.08
+        y: null
       });
     }
   },
@@ -110,6 +111,7 @@ window.SimulatorCh2 = {
 
     tabBand?.addEventListener('click', () => {
       this.mode = 'band-gap';
+      this.bandParticles.forEach(p => { p.y = null; });
       tabBand.className = 'px-3 py-1.5 rounded-md font-medium transition-all bg-emerald-600 text-white shadow';
       tabPn.className = 'px-3 py-1.5 rounded-md font-medium transition-all text-slate-400 hover:text-white';
       this.renderControls();
@@ -128,7 +130,7 @@ window.SimulatorCh2 = {
               <span>바이어스 전압 (V_bias):</span>
               <span id="ch2-val-bias" class="font-mono text-emerald-400 font-bold">${this.biasVoltage > 0 ? '+' : ''}${this.biasVoltage.toFixed(2)} V</span>
             </div>
-            <input id="ch2-slider-bias" type="range" min="-3.0" max="0.75" step="0.05" value="${this.biasVoltage}" class="w-full accent-emerald-500 cursor-pointer">
+            <input id="ch2-slider-bias" type="range" min="-3.0" max="0.75" step="0.05" value="${this.biasVoltage}" aria-label="P-N 접합 바이어스 전압" class="w-full accent-emerald-500 cursor-pointer">
             <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
               <span>-3.0V (강한 역방향)</span>
               <span>0V (평형)</span>
@@ -190,7 +192,7 @@ window.SimulatorCh2 = {
               <span>절대온도 (Temperature):</span>
               <span id="ch2-val-temp" class="font-mono text-emerald-400 font-bold">${this.temperature} K</span>
             </div>
-            <input id="ch2-slider-temp" type="range" min="0" max="600" step="25" value="${this.temperature}" class="w-full accent-emerald-500 cursor-pointer">
+            <input id="ch2-slider-temp" type="range" min="0" max="600" step="25" value="${this.temperature}" aria-label="재료 온도" class="w-full accent-emerald-500 cursor-pointer">
             <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
               <span>0 K (절대영도)</span>
               <span>300 K (상온)</span>
@@ -204,6 +206,7 @@ window.SimulatorCh2 = {
         const mat = type === 'cond' ? 'conductor' : type === 'semi' ? 'semiconductor' : 'insulator';
         document.getElementById(`ch2-btn-${type}`)?.addEventListener('click', () => {
           this.material = mat;
+          this.bandParticles.forEach(p => { p.y = null; });
           this.renderControls();
         });
       });
@@ -229,6 +232,11 @@ window.SimulatorCh2 = {
       cancelAnimationFrame(this.animId);
       this.animId = null;
     }
+  },
+
+  dispose() {
+    if (this.resizeHandler) window.removeEventListener('resize', this.resizeHandler);
+    this.resizeHandler = null;
   },
 
   draw() {
@@ -386,7 +394,7 @@ window.SimulatorCh2 = {
     } else if (this.material === 'insulator') {
       conductionY = h * 0.15;
       valenceY = h * 0.8;
-      gapLabel = '> 5.0 eV (넓은 밴드갭, 전도 불가)';
+      gapLabel = '> 5.0 eV (넓은 밴드갭, 상온 전도 매우 낮음)';
     }
 
     // 1. 전도대 (Conduction Band)
@@ -425,7 +433,8 @@ window.SimulatorCh2 = {
     ctx.fillText('원자가대 (Valence Band - 전자로 채워진 바닥 준위)', w * 0.17, valenceY + 28);
 
     // 온도에 따른 전자 여기 확률
-    const exciteProb = (this.temperature / 600) * (this.material === 'conductor' ? 0.9 : this.material === 'semiconductor' ? 0.4 : 0.02);
+    const exciteProb = this.material === 'conductor' ? 0.5
+      : (this.temperature / 600) * (this.material === 'semiconductor' ? 0.4 : 0.002);
 
     this.bandParticles.forEach(p => {
       if (Math.random() < 0.02) {
@@ -437,6 +446,7 @@ window.SimulatorCh2 = {
       }
 
       const targetY = p.state === 'conduction' ? conductionY - 22 : valenceY + 22;
+      if (p.y === null) p.y = targetY;
       p.y += (targetY - p.y) * 0.1;
 
       const px = p.x * w;

@@ -51,7 +51,7 @@
           <div>
             <h1 class="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
               SemiLearn
-              <span class="text-[10px] px-1.5 py-0.2 bg-sky-500/10 text-sky-500 dark:text-sky-400 font-mono rounded">v1.0</span>
+              <span class="text-[10px] px-1.5 py-0.2 bg-sky-500/10 text-sky-500 dark:text-sky-400 font-mono rounded">Phase 1 시범판</span>
             </h1>
             <p class="text-[11px] text-slate-500 dark:text-slate-400">반도체 전자공학 인터랙티브 랩</p>
           </div>
@@ -147,7 +147,7 @@
           <div id="chapter-tags" class="flex flex-wrap gap-1.5"></div>
         </section>
 
-        <!-- 4개 서브탭 내비게이션 바 -->
+        <!-- 서브탭 내비게이션 바 -->
         <div class="border-b border-slate-200 dark:border-slate-800 mb-6 flex overflow-x-auto gap-2">
           <button data-tab-target="concepts" class="px-4 py-2.5 text-xs font-bold border-b-2 border-sky-500 text-sky-600 dark:text-sky-400 transition-colors whitespace-nowrap">
             📌 핵심 요약 (Key Concepts)
@@ -162,6 +162,9 @@
           <button data-tab-target="resources" class="px-4 py-2.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors whitespace-nowrap">
             🌐 추천 보충 자료 (Resources)
           </button>
+          <button data-tab-target="reader" class="px-4 py-2.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors whitespace-nowrap">
+            📖 교재 원문·번역
+          </button>
         </div>
 
         <!-- 탭 1: 핵심 요약 -->
@@ -175,6 +178,9 @@
 
         <!-- 탭 4: 추천 보충 자료 -->
         <div id="tab-content-resources" class="hidden"></div>
+
+        <!-- 탭 5: Ch 1 교재 원문·번역 -->
+        <div id="tab-content-reader" class="hidden"></div>
 
         <!-- 하단 챕터 페이징 이동 바 -->
         <div class="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs">
@@ -196,6 +202,7 @@
 
   <!-- 스크립트 로드 순서: 데이터 -> 시뮬레이션 모듈들 -> 메인 앱 -->
   <script src="js/chapters/chapters-data.js"></script>
+  <script src="js/chapters/ch1-reader.js"></script>
   <script src="js/simulations/sim-ch1.js"></script>
   <script src="js/simulations/sim-ch2.js"></script>
   <script src="js/simulations/sim-ch3.js"></script>
